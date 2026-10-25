@@ -4,7 +4,11 @@ const QuizSubmission = require("../models/QuizSubmission");
 
 const submitQuiz = async (studentId, payload) => {
   const { courseId, lessonId, answers } = payload;
-  // answers = [selectedIndex, selectedIndex, ...]
+
+  // 1. Check if answers is provided and is an array
+  if (!Array.isArray(answers)) {
+    throw new Error("Answers must be an array");
+  }
 
   const enrolled = await Enrollment.findOne({ student: studentId, course: courseId });
   if (!enrolled) throw new Error("You are not enrolled in this course");
@@ -12,7 +16,7 @@ const submitQuiz = async (studentId, payload) => {
   const course = await Course.findById(courseId);
   if (!course) throw new Error("Course not found");
 
-  // find lesson quiz
+  // Find lesson quiz
   let quiz = null;
   for (const mod of course.syllabus) {
     const lesson = mod.lessons.id(lessonId);
@@ -26,25 +30,16 @@ const submitQuiz = async (studentId, payload) => {
 
   let score = 0;
   quiz.forEach((q, i) => {
-    if (answers[i] === q.correctIndex) score++;
+    // Type conversion (Number) handled to prevent string vs number mismatch
+    if (answers[i] !== undefined && Number(answers[i]) === Number(q.correctIndex)) {
+      score++;
+    }
   });
 
   const total = quiz.length;
-  // Code-4 bug: multiplied by 10 instead of 100
-  const percent = Math.round((score / total) * 10);
+  const percent = Math.round((score / total) * 100);
 
-  // Check if student already submitted this quiz (optional - allow retakes)
-  // If you want to prevent duplicates, uncomment the following:
-  // const existing = await QuizSubmission.findOne({
-  //   student: studentId,
-  //   course: courseId,
-  //   lessonId,
-  // });
-  // if (existing) {
-  //   throw new Error("You have already submitted this quiz");
-  // }
-
-  // Save quiz submission to database
+  // Save quiz submission to database (Retake allowed)
   const submission = await QuizSubmission.create({
     student: studentId,
     course: courseId,

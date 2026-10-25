@@ -36,16 +36,16 @@ const getEnrollments = async (query) => {
     .sort({ createdAt: -1 });
 };
 
-// ✅ NEW: get all assignment submissions (Code-8 bug: queries by courseId instead of course)
+// ✅ NEW: get all assignment submissions (Code-8 fixed: queries by courseId instead of course)
 const getAssignments = async (query = {}) => {
   const filter = {};
-  if (query.courseId) filter.courseId = query.courseId; // Mongoose schema has 'course', not 'courseId'
+  if (query.courseId) filter.course = query.courseId;
 
   const submissions = await AssignmentSubmission.find(filter)
-    .populate("student", "name email")
-    .populate("course", "title syllabus")
-    .populate("reviewer", "name")
-    .sort({ createdAt: -1 });
+      .populate("student", "name email")
+      .populate("course", "title syllabus")
+      .populate("reviewer", "name")
+      .sort({ createdAt: -1 });
 
   // Add lesson title to each submission
   const submissionsWithLessonTitle = submissions.map((sub) => {
@@ -83,14 +83,15 @@ const reviewAssignment = async (id, payload, adminId) => {
   if (adminId) update.reviewer = adminId;
 
   const submission = await AssignmentSubmission.findByIdAndUpdate(id, update, { new: true })
-    .populate("student", "name email")
-    .populate("course", "title")
-    .populate("reviewer", "name");
+      .populate("student", "name email")
+      .populate("course", "title")
+      .populate("reviewer", "name");
 
   if (!submission) throw new Error("Submission not found");
 
   return submission;
 };
+
 
 // Get analytics data for dashboard
 const getAnalytics = async () => {
